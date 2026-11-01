@@ -36,8 +36,18 @@ pub async fn create(
     Extension(context): Extension<HandlerContext>,
     Json(req): Json<PaymentCreateRequest>,
 ) -> Result<Json<PaymentCreateResponse>, ErrorResponse> {
+    if req.transfers.is_empty() {
+        return Err(ErrorResponse::bad_request("At least one transfer is required"));
+    }
     if req.transfers.iter().any(|t| t.amount == 0) {
         return Err(ErrorResponse::bad_request("Amount must be greater than zero"));
+    }
+    let total_transfer = req
+        .transfers
+        .iter()
+        .try_fold(0u64, |acc, t| acc.checked_add(t.amount));
+    if total_transfer.and_then(|sum| sum.checked_add(req.max_fee)).is_none() {
+        return Err(ErrorResponse::bad_request("Total spend amount overflows u64"));
     }
 
     let id = context

@@ -31,11 +31,13 @@ pub struct SendPaymentJobPayload {
 
 impl SendPaymentJobPayload {
     pub fn total_transfer_amount(&self) -> u64 {
-        self.transfers.iter().map(|t| t.amount).sum()
+        self.transfers
+            .iter()
+            .fold(0u64, |acc, t| acc.saturating_add(t.amount))
     }
 
     pub fn total_spend_amount(&self) -> u64 {
-        self.total_transfer_amount() + self.max_fee
+        self.total_transfer_amount().saturating_add(self.max_fee)
     }
 }
 

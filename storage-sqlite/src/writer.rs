@@ -82,6 +82,7 @@ impl ootle_payment_processor_storage::StoreWriteTransaction for SqliteWriteTrans
     ) -> Result<(), StorageError> {
         let resx = resource_address.to_string();
         let amount = amount as i64;
+        let id_str = id.to_string();
 
         sqlx::query!(
             "UPDATE job_queue \
@@ -91,10 +92,10 @@ impl ootle_payment_processor_storage::StoreWriteTransaction for SqliteWriteTrans
                     await_balance_amt = $2, \
                     attempts = attempts + 1, \
                     updated_at = CURRENT_TIMESTAMP \
-                WHERE id = $3",
+                WHERE uuid = $3",
             resx,
             amount,
-            id
+            id_str
         )
         .execute(self.conn())
         .await
@@ -166,7 +167,8 @@ impl ootle_payment_processor_storage::StoreWriteTransaction for SqliteWriteTrans
     }
 
     async fn delete_job(&mut self, id: &Uuid) -> Result<(), StorageError> {
-        sqlx::query!("DELETE FROM job_queue WHERE id = $1", id)
+        let id_str = id.to_string();
+        sqlx::query!("DELETE FROM job_queue WHERE uuid = $1", id_str)
             .execute(self.conn())
             .await
             .map_err(|e| StorageError::DatabaseError { source: e.into() })?;
